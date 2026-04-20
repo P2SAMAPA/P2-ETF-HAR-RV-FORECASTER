@@ -25,6 +25,7 @@ st.markdown("""
                  border-radius: 16px; padding: 2rem; color: white; text-align: center; }
     .hero-ticker { font-size: 4rem; font-weight: 800; }
     .hero-score { font-size: 2rem; font-weight: 600; }
+    .footnote { font-size: 0.9rem; color: #666; margin-top: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -55,7 +56,14 @@ def display_hero_card(ticker: str, score: float, vol_forecast: float, exp_ret: f
         <div style="font-size: 1.2rem; opacity: 0.8;">📉 TOP PICK (Best Risk-Adjusted Return)</div>
         <div class="hero-ticker">{ticker}</div>
         <div class="hero-score">Score: {score:.4f}</div>
-        <div style="margin-top: 1rem;">Exp Return: {exp_ret*100:.2f}% | Vol Forecast: {vol_forecast*100:.2f}%</div>
+        <div style="margin-top: 1rem;">
+            Exp Return (annualized): {exp_ret*100:.2f}%<br>
+            Vol Forecast (1‑day, annualized): {vol_forecast*100:.2f}%
+        </div>
+    </div>
+    <div class="footnote">
+        * Expected return based on 21‑day average daily return × 252.<br>
+        * Volatility forecast is HAR model's 1‑day ahead Parkinson RV (annualized).
     </div>
     """, unsafe_allow_html=True)
 
@@ -82,6 +90,7 @@ st.sidebar.markdown("""
 **HAR-RV Forecaster** uses the Heterogeneous Autoregressive model to forecast realized volatility.
 - Ranks ETFs by **expected return / forecasted volatility**.
 - Higher scores indicate better risk-adjusted return potential.
+- All returns and volatilities are **annualized**.
 """)
 
 # --- Main Content ---
@@ -126,8 +135,8 @@ with tab1:
                     rows.append({
                         'Ticker': ticker,
                         'Score': f"{vals['vol_adjusted_score']:.4f}",
-                        'Exp Return': f"{vals['expected_return']*100:.2f}%",
-                        'Vol Forecast (1d)': f"{vals['vol_forecast_1d']*100:.2f}%" if vals['vol_forecast_1d'] else 'N/A',
+                        'Exp Return (ann.)': f"{vals['expected_return']*100:.2f}%",
+                        'Vol Forecast (1d ann.)': f"{vals['vol_forecast_1d']*100:.2f}%" if vals['vol_forecast_1d'] else 'N/A',
                         'HAR R²': f"{vals.get('har_r2', 0):.3f}"
                     })
                 df = pd.DataFrame(rows).sort_values('Score', ascending=False)
@@ -146,10 +155,14 @@ with tab1:
                                 universe_dict[t]['vol_forecast_1d'] * 100,
                                 universe_dict[t].get('vol_forecast_5d', 0) * 100,
                                 universe_dict[t].get('vol_forecast_22d', 0) * 100
-                            ]
+                            ],
+                            text=[f"{universe_dict[t]['vol_forecast_1d']*100:.1f}%",
+                                  f"{universe_dict[t].get('vol_forecast_5d', 0)*100:.1f}%",
+                                  f"{universe_dict[t].get('vol_forecast_22d', 0)*100:.1f}%"],
+                            textposition='auto'
                         ))
                 fig.update_layout(
-                    title="Volatility Forecasts (%)",
+                    title="Volatility Forecasts (Annualized %)",
                     yaxis_title="Annualized Volatility (%)",
                     barmode='group',
                     height=400
